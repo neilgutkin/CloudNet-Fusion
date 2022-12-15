@@ -8,24 +8,29 @@ Some lines borrowed from: https://www.kaggle.com/sashakorekov/end-to-end-resnet5
 
 
 def rotate_clk_img_and_msk(img, msk):
+    np.random.seed(42)
     angle = np.random.choice((4, 6, 8, 10, 12, 14, 16, 18, 20))
-    img_o = trans.rotate(img, angle, resize=False, preserve_range=True, mode='symmetric')
-    msk_o = trans.rotate(msk, angle, resize=False, preserve_range=True, mode='symmetric')
+    img_o = trans.rotate(img, angle, resize=False, preserve_range=True, mode='symmetric', order=0)
+    msk_o = trans.rotate(msk, angle, resize=False, preserve_range=True, mode='symmetric', order=0)
     return img_o, msk_o
 
 def rotate_cclk_img_and_msk(img, msk):
+    np.random.seed(42)
     angle = np.random.choice((-20, -18, -16, -14, -12, -10, -8, -6, -4))
-    img_o = trans.rotate(img, angle, resize=False, preserve_range=True, mode='symmetric')
-    msk_o = trans.rotate(msk, angle, resize=False, preserve_range=True, mode='symmetric')
+    img_o = trans.rotate(img, angle, resize=False, preserve_range=True, mode='symmetric', order=0)
+    msk_o = trans.rotate(msk, angle, resize=False, preserve_range=True, mode='symmetric', order=0)
     return img_o, msk_o
 
 def flipping_img_and_msk(img, msk):
-    img_o = np.flip(img, axis=1)
-    msk_o = np.flip(msk, axis=1)
+    np.random.seed(42)
+    # Use .copy() to avoid 'negative strides' in numpy
+    # Otherwise, conversion to Tensor will fail
+    img_o = np.flip(img, axis=1).copy()
+    msk_o = np.flip(msk, axis=1).copy()
     return img_o, msk_o
 
 def zoom_img_and_msk(img, msk):
-
+    np.random.seed(42)
     zoom_factor = np.random.choice((1.2, 1.5, 1.8, 2, 2.2, 2.5))  # currently doesn't have zoom out!
     h, w = img.shape[:2]
 
@@ -33,8 +38,8 @@ def zoom_img_and_msk(img, msk):
     zh = int(np.round(zoom_factor * h))
     zw = int(np.round(zoom_factor * w))
 
-    img = trans.resize(img, (zh, zw), preserve_range=True, mode='symmetric')
-    msk = trans.resize(msk, (zh, zw), preserve_range=True, mode='symmetric')
+    img = trans.resize(img, (zh, zw), order = 0, anti_aliasing=False, preserve_range=True, mode='symmetric')
+    msk = trans.resize(msk, (zh, zw), order = 0, anti_aliasing=False, preserve_range=True, mode='symmetric')
     region = np.random.choice((0, 1, 2, 3, 4))
 
     # zooming out
@@ -64,6 +69,6 @@ def zoom_img_and_msk(img, msk):
             outmsk = msk[(zh // 2 - marh):(zh // 2 + marh), (zw // 2 - marw):(zw // 2 + marw)]
 
     # to make sure the output is in the same size of the input
-    img_o = trans.resize(outimg, (h, w), preserve_range=True, mode='symmetric')
-    msk_o = trans.resize(outmsk, (h, w), preserve_range=True, mode='symmetric')
+    img_o = trans.resize(outimg, (h, w), order = 0, anti_aliasing=False, preserve_range=True, mode='symmetric')
+    msk_o = trans.resize(outmsk, (h, w), order = 0, anti_aliasing=False, preserve_range=True, mode='symmetric')
     return img_o, msk_o

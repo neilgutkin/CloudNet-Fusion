@@ -20,19 +20,29 @@ def contr_arm(input_tensor, filters, kernel_size):
        TO DO: remove keras.layers.add and replace it with add only
     """
 
+    # my guess, but i think the "input_tensor" is the copy layer (brown)
+    # input_channels is the only thing that doesn't have to be
+    # explicitly stated in tensorflow
+
+    # same network as original conv2d but you put in that input (first red layer)
     x = Conv2D(filters, kernel_size, padding='same')(input_tensor)
     x = bn_relu(x)
 
+    # same network as original conv2d but you input result of above (second red layer)
     x = Conv2D(filters, kernel_size, padding='same')(x)
     x = bn_relu(x)
 
+    # green layer (1x1 kernel)
     filters_b = filters // 2
-    kernel_size_b = (kernel_size[0]-2, kernel_size[0]-2)  # creates a kernl size of (1,1) out of (3,3)
-
+    kernel_size_b = (kernel_size[0]-2, kernel_size[0]-2)  # creates a kernel size of (1,1) out of (3,3)
     x1 = Conv2D(filters_b, kernel_size_b, padding='same')(input_tensor)
     x1 = bn_relu(x1)
 
+    # yellow layer = concat layer
+    # concatenate green layer (x1) and brown layer (input_tensor)
     x1 = concatenate([input_tensor, x1], axis=3)
+
+    # Addition layer (add 2nd red layer with yellow layer)
     x = keras.layers.add([x, x1])
     x = Activation("relu")(x)
     return x
@@ -42,23 +52,29 @@ def imprv_contr_arm(input_tensor, filters, kernel_size ):
     """It adds a feedforward signal to the output of two following conv layers in contracting path
     """
 
+    # 1st red layer
     x = Conv2D(filters, kernel_size, padding='same')(input_tensor)
     x = bn_relu(x)
 
+    # 2nd red layer
     x0 = Conv2D(filters, kernel_size, padding='same')(x)
     x0 = bn_relu(x0)
 
+    # 3rd red layer
     x = Conv2D(filters, kernel_size, padding='same')(x0)
     x = bn_relu(x)
 
+    # green layer
     filters_b = filters // 2
     kernel_size_b = (kernel_size[0]-2, kernel_size[0]-2)  # creates a kernl size of (1,1) out of (3,3)
-
     x1 = Conv2D(filters_b, kernel_size_b, padding='same')(input_tensor)
     x1 = bn_relu(x1)
 
+    # input_tensor = brown layer
+    # yellow layer
     x1 = concatenate([input_tensor, x1], axis=3)
 
+    # "updated"/"other" green layer: 2nd red layer as input to the "top" green layer
     x2 = Conv2D(filters, kernel_size_b, padding='same')(x0)
     x2 = bn_relu(x2)
 
@@ -68,23 +84,28 @@ def imprv_contr_arm(input_tensor, filters, kernel_size ):
 
 
 def bridge(input_tensor, filters, kernel_size):
-    """It is exactly like the identity_block plus a dropout layer. This block only uses in the valley of the UNet
+    """It is exactly like the identity_block plus a dropout layer. This block only use is in the valley of the UNet
     """
 
+    # 1st red layer
     x = Conv2D(filters, kernel_size, padding='same')(input_tensor)
     x = bn_relu(x)
 
+    # 2nd red layer
     x = Conv2D(filters, kernel_size, padding='same')(x)
     x = Dropout(.15)(x)
     x = bn_relu(x)
 
+    # green layer
     filters_b = filters // 2
     kernel_size_b = (kernel_size[0]-2, kernel_size[0]-2)  # creates a kernl size of (1,1) out of (3,3)
-
     x1 = Conv2D(filters_b, kernel_size_b, padding='same')(input_tensor)
     x1 = bn_relu(x1)
 
+    # yellow layer
     x1 = concatenate([input_tensor, x1], axis=3)
+
+    # blue layer (addition)
     x = keras.layers.add([x, x1])
     x = Activation("relu")(x)
     return x
@@ -131,6 +152,7 @@ def improve_ff_block4(input_tensor1, input_tensor2 ,input_tensor3, input_tensor4
        TO DO: shrink all of ff blocks in one function/class
     """
 
+    # this is the dumbest for loop i've ever seen
     for ix in range(1):
         if ix == 0:
             x1 = input_tensor1
@@ -245,7 +267,8 @@ def model_arch(input_rows=192, input_cols=192, num_of_channels=4, num_of_classes
     conv6 = bridge(pool5, 1024, (3, 3))
 
     convT7 = Conv2DTranspose(512, (2, 2), strides=(2, 2), padding='same')(conv6)
-    prevup7 = improve_ff_block4(input_tensor1=conv4, input_tensor2=conv3, input_tensor3=conv2, input_tensor4=conv1, pure_ff=conv5)
+    prevup7 = improve_ff_block4(input_tensor1=conv4, input_tensor2=conv3, input_tensor3=conv2, input_tensor4=conv1,
+                                pure_ff=conv5)
     up7 = concatenate([convT7, prevup7], axis=3)
     conv7 = conv_block_exp_path3(input_tensor=up7, filters=512, kernel_size=(3, 3))
     conv7 = add_block_exp_path(conv7, conv5, convT7)
@@ -268,7 +291,9 @@ def model_arch(input_rows=192, input_cols=192, num_of_channels=4, num_of_classes
     conv10 = conv_block_exp_path(input_tensor=up10, filters=64, kernel_size=(3, 3))
     conv10 = add_block_exp_path(input_tensor1=conv10, input_tensor2=conv2, input_tensor3=convT10)
 
+    # light blue layer
     convT11 = Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(conv10)
+    # input is output of first convolution layer (conv1) and light blue layer
     up11 = concatenate([convT11, conv1], axis=3)
     conv11 = conv_block_exp_path(input_tensor=up11, filters=32, kernel_size=(3, 3))
     conv11 = add_block_exp_path(input_tensor1=conv11, input_tensor2=conv1, input_tensor3=convT11)

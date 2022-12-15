@@ -1,12 +1,11 @@
-
 from __future__ import print_function
 import os
 import numpy as np
-import cloud_net_model
-from generators import mybatch_generator_prediction
+from cs_6804_project.src.keras_cloudnet import cloud_net_model
+from cs_6804_project.src.keras_cloudnet import mybatch_generator_prediction
 import tifffile as tiff
 import pandas as pd
-from utils import get_input_image_names
+from cs_6804_project.src.keras_cloudnet import get_input_image_names
 
 
 def prediction():
